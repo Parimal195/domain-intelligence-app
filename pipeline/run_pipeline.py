@@ -19,6 +19,7 @@ from utils.helpers import is_valid_domain, parse_date, days_until_expiry, classi
 from utils.logger import get_logger
 from ingestion.seed_data import generate_seed_data
 from scoring.scorer import DomainScorer
+from utils.website_checker import filter_in_use_domains
 
 log = get_logger(__name__)
 
@@ -206,6 +207,9 @@ def run_pipeline():
         
         # Phase 2: Clean
         cleaned = clean_data(raw_records)
+        
+        # Phase 2.5: Filter out parked/for-sale domains
+        cleaned = filter_in_use_domains(cleaned)
         
         if not cleaned:
             log.warning("No domains to score after cleaning. Using cached data.")
