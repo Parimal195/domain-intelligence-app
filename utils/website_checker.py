@@ -13,19 +13,16 @@ log = get_logger(__name__)
 
 # Keywords indicating a domain is parked or up for sale
 PARKED_KEYWORDS = [
-    "domain is for sale",
-    "buy this domain",
-    "is available for purchase",
-    "parked free",
-    "sedo.com",
-    "dan.com",
-    "hugedomains",
-    "domain name is for sale",
-    "inquire about this domain",
-    "this domain may be for sale",
-    "make an offer",
-    "purchase this domain",
-    "domain is available",
+    "domain is for sale", "buy this domain", "is available for purchase",
+    "parked free", "sedo.com", "dan.com", "hugedomains", "domain name is for sale",
+    "inquire about this domain", "this domain may be for sale", "make an offer",
+    "purchase this domain", "domain is available", "submit your offer",
+    "spaceship.com", "godaddy.com/forsale", "afternic", "domain seller",
+    "this domain is listed for sale", "buyer protection program", "buy it now",
+    "contact owner", "minimum offer", "domain broker", "domain name is available",
+    "get this domain", "own this domain", "sale price", "buy now for",
+    "this webpage is parked", "this site is parked", "domain parking",
+    "buy domain", "domains for sale", "acquire this domain"
 ]
 
 def is_domain_in_use(domain: str, timeout: int = 4) -> bool:
