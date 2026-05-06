@@ -289,9 +289,11 @@ with st.sidebar:
     st.markdown("**🌍 Country Filter**")
     if "country" in df.columns:
         all_countries = sorted(df["country"].dropna().unique().tolist())
-        selected_countries = st.multiselect("Countries", all_countries, default=[], placeholder="All Countries")
     else:
-        selected_countries = []
+        all_countries = ["Unknown"]
+        
+    country_options = ["All"] + all_countries
+    selected_country = st.selectbox("Countries", country_options, label_visibility="collapsed")
     
     # Keyword search
     st.markdown("**🔎 Keyword Search**")
@@ -318,8 +320,8 @@ filtered = filtered[(filtered["score"] >= score_min) & (filtered["score"] <= sco
 if selected_tlds:
     filtered = filtered[filtered["tld"].isin(selected_tlds)]
 
-if selected_countries:
-    filtered = filtered[filtered["country"].isin(selected_countries)]
+if selected_country != "All" and "country" in filtered.columns:
+    filtered = filtered[filtered["country"] == selected_country]
 
 if keyword:
     filtered = filtered[filtered["domain"].str.contains(keyword.lower(), case=False, na=False)]
