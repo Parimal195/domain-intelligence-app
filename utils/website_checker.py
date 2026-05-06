@@ -56,10 +56,23 @@ def check_domain_status(record: Dict, timeout: int = 4) -> Dict:
             
             if resp.status_code == 200:
                 text = resp.text.lower()
+                
+                # Check 1: Known parked keywords
                 for kw in PARKED_KEYWORDS:
                     if kw in text:
                         record["availability_status"] = "⚠️ For Sale"
                         return record
+                        
+                # Check 2: JavaScript redirects (e.g., GoDaddy's /lander)
+                js_redirects = ["window.location.href", "window.location.replace", 'content="0;url=']
+                if any(js in text for js in js_redirects) and len(text) < 1500:
+                    record["availability_status"] = "⚠️ For Sale"
+                    return record
+                    
+                # Check 3: Extremely short/empty pages are usually parked or inactive
+                if len(text) < 200:
+                    record["availability_status"] = "⚠️ For Sale"
+                    return record
                         
             record["availability_status"] = "❌ Taken"
             return record
