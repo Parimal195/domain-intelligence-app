@@ -1,9 +1,9 @@
 """
-Seed Data Generator for the Domain Intelligence App.
+Seed Data Generator for the Domain Suggestion App.
 
-Generates a realistic dataset of expiring domains across multiple TLDs
+Generates a realistic dataset of available domain suggestions across multiple TLDs
 with varied naming patterns (brandable, keyword-rich, short, compound).
-Used for demo/testing and as a fallback when live sources are unavailable.
+Mapped specifically to target countries.
 """
 
 import random
@@ -45,28 +45,23 @@ WORDS = [
     "talk", "host", "rent", "gift", "feed", "lock", "mint",
 ]
 
-TLDS = [
-    (".com", 0.35),   # 35% chance
-    (".io", 0.15),
-    (".ai", 0.08),
-    (".co", 0.10),
-    (".net", 0.08),
-    (".org", 0.05),
-    (".dev", 0.05),
-    (".app", 0.04),
-    (".xyz", 0.03),
-    (".tech", 0.03),
-    (".me", 0.02),
-    (".gg", 0.02),
-]
+COUNTRY_MAPPING = {
+    "🇮🇳 India": [".in", ".co.in", ".com", ".ai"],
+    "🇺🇸 USA": [".us", ".com", ".net", ".ai"],
+    "🇦🇪 UAE": [".ae", ".com", ".co", ".io"],
+    "🇬🇧 UK": [".co.uk", ".uk", ".com", ".io"],
+    "🇩🇪 Germany": [".de", ".com", ".net", ".tech"],
+    "🇦🇺 Australia": [".com.au", ".au", ".com", ".co"],
+    "🌐 Global": [".com", ".net", ".org", ".io", ".ai", ".co"]
+}
 
-COUNTRIES = ["US", "UK", "CA", "IN", "DE", "AU", "Unknown"]
-
-
-def _weighted_tld() -> str:
-    """Pick a TLD based on weighted distribution."""
-    tlds, weights = zip(*TLDS)
-    return random.choices(tlds, weights=weights, k=1)[0]
+def _weighted_tld(country: str) -> str:
+    """Pick a TLD based on the selected country."""
+    tlds = COUNTRY_MAPPING.get(country, [".com"])
+    # 50% chance of the primary country TLD, 50% chance of global TLDs
+    if random.random() < 0.5:
+        return tlds[0]
+    return random.choice(tlds)
 
 
 def _generate_brandable_name() -> str:
@@ -116,7 +111,7 @@ def _generate_compound_name() -> str:
     return random.choice(WORDS) + random.choice(WORDS)
 
 
-def generate_domain_name() -> str:
+def generate_domain_name(country: str) -> str:
     """Generate a random domain name with TLD."""
     generator = random.choices(
         [_generate_brandable_name, _generate_keyword_name,
@@ -126,7 +121,7 @@ def generate_domain_name() -> str:
     )[0]
 
     name = generator()
-    tld = _weighted_tld()
+    tld = _weighted_tld(country)
 
     # Clean: remove spaces, ensure lowercase
     name = name.lower().replace(" ", "").replace("-", "")
@@ -136,27 +131,6 @@ def generate_domain_name() -> str:
         name = name[:20]
 
     return f"{name}{tld}"
-
-
-def generate_expiry_date() -> str:
-    """Generate a random expiry date within 1-35 day window."""
-    now = datetime.now(timezone.utc)
-
-    # Weighted toward sooner expiry
-    window = random.choices(
-        [
-            (0, 1),     # Expiring today/tomorrow
-            (1, 7),     # Expiring within a week
-            (7, 30),    # Expiring within a month
-            (30, 35),   # Just past 30 days
-        ],
-        weights=[0.15, 0.30, 0.40, 0.15],
-        k=1,
-    )[0]
-
-    days_offset = random.randint(window[0], window[1])
-    expiry = now + timedelta(days=days_offset, hours=random.randint(0, 23))
-    return expiry.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def generate_seed_data(count: int = SEED_DOMAIN_COUNT) -> List[Dict]:
@@ -179,7 +153,8 @@ def generate_seed_data(count: int = SEED_DOMAIN_COUNT) -> List[Dict]:
 
     while len(records) < count and attempts < max_attempts:
         attempts += 1
-        domain = generate_domain_name()
+        country = random.choice(list(COUNTRY_MAPPING.keys()))
+        domain = generate_domain_name(country)
 
         # Skip duplicates
         if domain in domains:
@@ -191,11 +166,10 @@ def generate_seed_data(count: int = SEED_DOMAIN_COUNT) -> List[Dict]:
 
         record = {
             "domain": domain,
-            "expiry_date": generate_expiry_date(),
             "tld": tld,
             "sld": sld,
-            "source": "seed",
-            "country": random.choice(COUNTRIES),
+            "source": "generator",
+            "country": country,
             "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
         records.append(record)
@@ -220,7 +194,7 @@ def save_seed_data(records: List[Dict], filepath: Path = None) -> Path:
 
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    fieldnames = ["domain", "expiry_date", "tld", "sld", "source", "country", "fetched_at"]
+    fieldnames = ["domain", "tld", "sld", "source", "country", "fetched_at"]
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -15,16 +15,16 @@ from typing import List, Dict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from utils.config import DATA_DIR, DATA_FILE, MAX_DOMAINS_PER_RUN, SEED_DOMAIN_COUNT
-from utils.helpers import is_valid_domain, parse_date, days_until_expiry, classify_expiry_window, clean_domain_name
+from utils.helpers import is_valid_domain, clean_domain_name
 from utils.logger import get_logger
 from ingestion.seed_data import generate_seed_data
 from scoring.scorer import DomainScorer
-from utils.website_checker import filter_in_use_domains
+from utils.website_checker import validate_availability
 
 log = get_logger(__name__)
 
 CSV_FIELDS = [
-    "domain", "sld", "tld", "expiry_date", "days_until_expiry", "expiry_window",
+    "domain", "sld", "tld", "availability_status",
     "score", "tag", "estimated_price",
     "keyword_score", "trend_score", "tld_score", "brandability_score", "length_score",
     "pronounceability_score", "source", "fetched_at", "scored_at", "country"
@@ -116,20 +116,7 @@ def clean_data(records: List[Dict]) -> List[Dict]:
         record["tld"] = record.get("tld", "." + domain.split(".")[-1])
         record["sld"] = record.get("sld", domain.split(".")[0])
         
-        # Parse expiry date
-        expiry_str = record.get("expiry_date", "")
-        if expiry_str:
-            expiry_dt = parse_date(expiry_str)
-            if expiry_dt:
-                record["expiry_date"] = expiry_dt.strftime("%Y-%m-%d %H:%M:%S")
-                record["days_until_expiry"] = days_until_expiry(expiry_dt)
-                record["expiry_window"] = classify_expiry_window(record["days_until_expiry"])
-            else:
-                skipped["no_expiry"] += 1
-                continue
-        else:
-            skipped["no_expiry"] += 1
-            continue
+        # Expiry logic removed as part of suggestion pivot
         
         cleaned.append(record)
     
@@ -208,8 +195,8 @@ def run_pipeline():
         # Phase 2: Clean
         cleaned = clean_data(raw_records)
         
-        # Phase 2.5: Filter out parked/for-sale domains
-        cleaned = filter_in_use_domains(cleaned)
+        # Phase 2.5: Availability Validation
+        cleaned = validate_availability(cleaned)
         
         if not cleaned:
             log.warning("No domains to score after cleaning. Using cached data.")

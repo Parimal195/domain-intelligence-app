@@ -266,10 +266,9 @@ with st.sidebar:
     st.markdown("## 🎛️ Filters")
     st.markdown("---")
     
-    # Expiry window
-    st.markdown("**⏰ Expiry Window**")
-    expiry_options = ["All"] + sorted(df["expiry_window"].dropna().unique().tolist()) if "expiry_window" in df.columns else ["All"]
-    selected_expiry = st.selectbox("Select window", expiry_options, label_visibility="collapsed")
+    # Availability Toggle
+    st.markdown("**🚥 Availability**")
+    show_only_available = st.toggle("Only show available domains", value=False)
     
     # Score range
     st.markdown("**📊 Score Range**")
@@ -312,8 +311,8 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 filtered = df.copy()
 
-if selected_expiry != "All" and "expiry_window" in filtered.columns:
-    filtered = filtered[filtered["expiry_window"] == selected_expiry]
+if show_only_available and "availability_status" in filtered.columns:
+    filtered = filtered[filtered["availability_status"] == "✅ Available"]
 
 filtered = filtered[(filtered["score"] >= score_min) & (filtered["score"] <= score_max)]
 
@@ -354,11 +353,11 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
-    expiring_soon = len(filtered[filtered["expiry_window"] == "1 Day"]) if "expiry_window" in filtered.columns else 0
+    available_count = len(filtered[filtered["availability_status"] == "✅ Available"]) if "availability_status" in filtered.columns else 0
     st.markdown(f"""
     <div class="kpi-card">
-        <div class="kpi-value">{expiring_soon}</div>
-        <div class="kpi-label">Expiring 24h</div>
+        <div class="kpi-value">{available_count}</div>
+        <div class="kpi-label">Available Domains</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -401,8 +400,8 @@ if len(top10) > 0:
                     <div style="font-size:0.7rem; color:#64748B;">EST. PRICE</div>
                 </div>
                 <div style="text-align:center;">
-                    <div style="font-weight:700; color:#10B981; font-size:1.1rem;">{row.get('expiry_window', 'N/A')}</div>
-                    <div style="font-size:0.7rem; color:#64748B;">EXPIRES IN</div>
+                    <div style="font-weight:700; color:#10B981; font-size:1.1rem;">{row.get('availability_status', 'N/A')}</div>
+                    <div style="font-size:0.7rem; color:#64748B;">STATUS</div>
                 </div>
             </div>
         </div>
@@ -417,7 +416,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ─────────────────────────────────────────────
 st.markdown('<div class="section-header">📋 Domain Explorer</div>', unsafe_allow_html=True)
 
-display_cols = ["domain", "score", "tag", "estimated_price", "tld", "country", "expiry_window", "days_until_expiry",
+display_cols = ["domain", "availability_status", "score", "tag", "estimated_price", "tld", "country",
                 "keyword_score", "trend_score", "brandability_score", "length_score"]
 available_cols = [c for c in display_cols if c in filtered.columns]
 
@@ -425,13 +424,12 @@ if len(filtered) > 0:
     display_df = filtered[available_cols].copy()
     display_df = display_df.rename(columns={
         "domain": "Domain",
+        "availability_status": "Status",
         "score": "Score",
         "tag": "Tag",
-        "estimated_price": "Est. Price ($)",
+        "estimated_price": "Reg Fee/Est Value ($)",
         "tld": "TLD",
         "country": "Country",
-        "expiry_window": "Expiry Window",
-        "days_until_expiry": "Days Left",
         "keyword_score": "Keyword",
         "trend_score": "Trend",
         "brandability_score": "Brand",
@@ -575,20 +573,20 @@ with viz_col4:
         st.plotly_chart(fig_scatter, use_container_width=True)
 
 # ─────────────────────────────────────────────
-# Expiry Timeline
+# Availability Breakdown
 # ─────────────────────────────────────────────
-st.markdown('<div class="section-header">⏳ Expiry Timeline</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">⏳ Availability Status</div>', unsafe_allow_html=True)
 
-if "expiry_window" in filtered.columns and len(filtered) > 0:
-    expiry_dist = filtered["expiry_window"].value_counts().reindex(["1 Day", "7 Days", "30 Days", "30+ Days"]).fillna(0)
+if "availability_status" in filtered.columns and len(filtered) > 0:
+    avail_dist = filtered["availability_status"].value_counts()
     fig_timeline = go.Figure(data=[
         go.Bar(
-            x=expiry_dist.index,
-            y=expiry_dist.values,
+            x=avail_dist.index,
+            y=avail_dist.values,
             marker=dict(
-                color=["#EF4444", "#F59E0B", "#06B6D4", "#6B7280"],
+                color=["#10B981", "#EF4444", "#F59E0B", "#6B7280"],
             ),
-            text=expiry_dist.values.astype(int),
+            text=avail_dist.values.astype(int),
             textposition="auto",
             textfont=dict(color="white", size=14, family="Inter"),
         )
@@ -597,7 +595,7 @@ if "expiry_window" in filtered.columns and len(filtered) > 0:
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font_color="#94A3B8",
-        xaxis=dict(gridcolor="rgba(148,163,184,0.1)", title="Expiry Window"),
+        xaxis=dict(gridcolor="rgba(148,163,184,0.1)", title="Status"),
         yaxis=dict(gridcolor="rgba(148,163,184,0.1)", title="Number of Domains"),
         margin=dict(l=20, r=20, t=30, b=20),
         height=300,

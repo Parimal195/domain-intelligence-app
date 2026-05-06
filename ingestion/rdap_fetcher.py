@@ -144,8 +144,17 @@ class RDAPFetcher:
             response = self.session.get(url, timeout=RDAP_TIMEOUT_SECONDS)
 
             if response.status_code == 404:
-                log.debug(f"Domain not found in RDAP: {domain}")
-                return None
+                # 404 means the domain is unregistered!
+                return {
+                    "domain": domain,
+                    "tld": extract_tld(domain),
+                    "sld": extract_sld(domain),
+                    "availability_status": "✅ Available",
+                    "registrar": "N/A",
+                    "country": "Unknown",
+                    "source": "rdap",
+                    "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                }
 
             if response.status_code == 429:
                 log.warning(f"RDAP rate limited for {domain}")
@@ -155,23 +164,15 @@ class RDAPFetcher:
             response.raise_for_status()
             data = response.json()
 
-            expiry_str = self._extract_expiry_from_rdap(data)
-            if not expiry_str:
-                log.debug(f"No expiry date found for {domain}")
-                return None
-
-            expiry_dt = parse_date(expiry_str)
-            if not expiry_dt:
-                return None
-
             registrar = self._extract_registrar(data)
             country = self._extract_country(data)
 
+            # If RDAP returns 200 OK, the domain is registered
             return {
                 "domain": domain,
-                "expiry_date": expiry_dt.strftime("%Y-%m-%d %H:%M:%S"),
                 "tld": extract_tld(domain),
                 "sld": extract_sld(domain),
+                "availability_status": "❌ Taken", # Validated further later
                 "registrar": registrar,
                 "country": country,
                 "source": "rdap",

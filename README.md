@@ -3,19 +3,23 @@
 > AI-powered expiring domain discovery, scoring, and intelligence dashboard.
 
 [![Daily Pipeline](https://github.com/YOUR_USERNAME/domain-intelligence-app/actions/workflows/daily_pipeline.yml/badge.svg)](https://github.com/YOUR_USERNAME/domain-intelligence-app/actions)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://YOUR_APP.streamlit.app)
+# Domain Intelligence App 🔍
+
+A production-grade, fully automated, globally deployable web application that **generates available domain suggestions**, scores them using AI/ML, and verifies their live availability status on a public dashboard.
+
+![Domain Intelligence](https://img.shields.io/badge/Status-Active-success)
+![Platform](https://img.shields.io/badge/Platform-Streamlit-FF4B4B)
+![Pipeline](https://img.shields.io/badge/Pipeline-GitHub_Actions-2088FF)
 
 ---
 
-## 🎯 What It Does
+## 🎯 Features
 
-Domain Intelligence automatically discovers expiring domains globally, scores them using ML/AI, and displays everything on a premium public dashboard.
-
-### Key Features
-
-- **🔄 Automated Discovery**: Daily pipeline discovers expiring domains from multiple free sources
-- **🧠 ML Scoring Engine**: Weighted scoring across 5 dimensions (keywords, trends, TLD value, brandability, length)
-- **📊 Premium Dashboard**: Dark-themed Streamlit app with interactive charts and filters
+- **Country-Targeted Suggestions:** Automatically generates domains targeted for specific regions (e.g. 🇮🇳 `.in`, 🇺🇸 `.us`).
+- **Live Availability Validation:** Uses RDAP and HTTP inspection to categorize domains as `✅ Available`, `❌ Taken`, or `⚠️ For Sale`.
+- **ML Scoring Engine:** Evaluates keywords, trends, brandability, and TLD value.
+- **Fully Automated:** Runs daily via GitHub Actions.
+- **Premium Dashboard:** Filter by country flags, availability toggle, and analytics.
 - **⏰ Expiry Classification**: Domains sorted by 1-day, 7-day, and 30-day windows
 - **💰 Price Estimation**: Heuristic buy-price estimates based on TLD, length, and keywords
 - **📥 CSV Export**: Download scored datasets for offline analysis

@@ -4,6 +4,7 @@ Checks if a domain is actively used by a company or if it's parked/up for sale.
 """
 
 import requests
+import socket
 import concurrent.futures
 from typing import List, Dict
 
@@ -25,68 +26,73 @@ PARKED_KEYWORDS = [
     "buy domain", "domains for sale", "acquire this domain"
 ]
 
-def is_domain_in_use(domain: str, timeout: int = 4) -> bool:
+def check_domain_status(record: Dict, timeout: int = 4) -> Dict:
     """
-    Checks if a domain is actively in use by a company.
-    Returns True if the site responds with 200 OK and is NOT a parking page.
-    Returns False if it times out, fails to resolve, or is parked.
+    Checks domain availability and parking status.
+    Updates the record's 'availability_status'.
     """
-    url = f"http://{domain}"
+    domain = record["domain"]
+    
+    # Fast check: Does it resolve to an IP?
     try:
-        # Use headers to act like a normal browser and avoid basic blocks
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        resp = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+        socket.gethostbyname(domain)
+        # It resolves, so it's definitely registered (Taken or For Sale)
+        is_registered = True
+    except socket.gaierror:
+        # Doesn't resolve. Could be available, or registered but inactive.
+        # For our suggestion engine, we will rely on RDAP for definitive checks later, 
+        # but if we are here, we can guess it's 'Available' if we can't do whois.
+        # Let's default to Available if it doesn't resolve.
+        record["availability_status"] = "✅ Available"
+        return record
         
-        # If we didn't get a successful response, it's not an active company site
-        if resp.status_code != 200:
-            return False
+    if is_registered:
+        url = f"http://{domain}"
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            resp = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
             
-        text = resp.text.lower()
-        
-        # Check for parked keywords
-        for kw in PARKED_KEYWORDS:
-            if kw in text:
-                return False
-                
-        # If it responded 200 and isn't parked, we assume it's in use
-        return True
-        
-    except Exception:
-        # DNS failure, timeout, connection refused, etc. 
-        # If it doesn't resolve or time out, it's not an active company site.
-        return False
+            if resp.status_code == 200:
+                text = resp.text.lower()
+                for kw in PARKED_KEYWORDS:
+                    if kw in text:
+                        record["availability_status"] = "⚠️ For Sale"
+                        return record
+                        
+            record["availability_status"] = "❌ Taken"
+            return record
+        except Exception:
+            record["availability_status"] = "❌ Taken"
+            return record
 
-def filter_in_use_domains(domains: List[Dict], max_workers: int = 15) -> List[Dict]:
+    return record
+
+def validate_availability(domains: List[Dict], max_workers: int = 20) -> List[Dict]:
     """
-    Filters a list of domain records, keeping only those that are actively in use.
-    Uses multithreading to speed up the network requests.
+    Validates a list of domain records, adding an 'availability_status' to each.
     """
-    log.info(f"Checking {len(domains)} domains to see if they are actively in use...")
-    active_domains = []
+    log.info(f"Validating availability for {len(domains)} domains...")
+    validated = []
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Create a mapping of future to domain record
         future_to_record = {
-            executor.submit(is_domain_in_use, record["domain"]): record 
+            executor.submit(check_domain_status, record): record 
             for record in domains
         }
         
         completed = 0
         for future in concurrent.futures.as_completed(future_to_record):
-            record = future_to_record[future]
             completed += 1
-            
             try:
-                is_active = future.result()
-                if is_active:
-                    active_domains.append(record)
+                validated.append(future.result())
             except Exception as e:
-                log.debug(f"Error checking {record['domain']}: {e}")
+                record = future_to_record[future]
+                record["availability_status"] = "❔ Unknown"
+                validated.append(record)
                 
-            if completed % 50 == 0:
-                log.info(f"  Checked {completed}/{len(domains)} domains. Found {len(active_domains)} active so far.")
+            if completed % 100 == 0:
+                log.info(f"  Validated {completed}/{len(domains)} domains.")
                 
-    log.info(f"Filtering complete. Kept {len(active_domains)}/{len(domains)} domains that are in use.")
-    return active_domains
+    return validated
