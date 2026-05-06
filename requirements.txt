@@ -1,0 +1,19 @@
+# Domain Intelligence App — Dependencies
+# All free, open-source packages
+
+# Core
+streamlit>=1.30.0
+pandas>=2.0.0
+plotly>=5.18.0
+
+# HTTP & Scraping
+requests>=2.31.0
+
+# Google Trends (optional — graceful fallback if unavailable)
+pytrends>=4.9.0
+
+# Word segmentation (lightweight)
+wordninja>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.0
