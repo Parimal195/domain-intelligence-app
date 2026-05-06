@@ -26,7 +26,7 @@ CSV_FIELDS = [
     "domain", "sld", "tld", "expiry_date", "days_until_expiry", "expiry_window",
     "score", "tag", "estimated_price",
     "keyword_score", "trend_score", "tld_score", "brandability_score", "length_score",
-    "pronounceability_score", "source", "fetched_at", "scored_at",
+    "pronounceability_score", "source", "fetched_at", "scored_at", "country"
 ]
 
 

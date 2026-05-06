@@ -60,6 +60,8 @@ TLDS = [
     (".gg", 0.02),
 ]
 
+COUNTRIES = ["US", "UK", "CA", "IN", "DE", "AU", "Unknown"]
+
 
 def _weighted_tld() -> str:
     """Pick a TLD based on weighted distribution."""
@@ -193,6 +195,7 @@ def generate_seed_data(count: int = SEED_DOMAIN_COUNT) -> List[Dict]:
             "tld": tld,
             "sld": sld,
             "source": "seed",
+            "country": random.choice(COUNTRIES),
             "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
         records.append(record)
@@ -217,7 +220,7 @@ def save_seed_data(records: List[Dict], filepath: Path = None) -> Path:
 
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    fieldnames = ["domain", "expiry_date", "tld", "sld", "source", "fetched_at"]
+    fieldnames = ["domain", "expiry_date", "tld", "sld", "source", "country", "fetched_at"]
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -284,6 +284,14 @@ with st.sidebar:
         selected_tlds = st.multiselect("TLDs", all_tlds, default=[], placeholder="All TLDs")
     else:
         selected_tlds = []
+        
+    # Country filter
+    st.markdown("**🌍 Country Filter**")
+    if "country" in df.columns:
+        all_countries = sorted(df["country"].dropna().unique().tolist())
+        selected_countries = st.multiselect("Countries", all_countries, default=[], placeholder="All Countries")
+    else:
+        selected_countries = []
     
     # Keyword search
     st.markdown("**🔎 Keyword Search**")
@@ -309,6 +317,9 @@ filtered = filtered[(filtered["score"] >= score_min) & (filtered["score"] <= sco
 
 if selected_tlds:
     filtered = filtered[filtered["tld"].isin(selected_tlds)]
+
+if selected_countries:
+    filtered = filtered[filtered["country"].isin(selected_countries)]
 
 if keyword:
     filtered = filtered[filtered["domain"].str.contains(keyword.lower(), case=False, na=False)]
@@ -404,7 +415,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ─────────────────────────────────────────────
 st.markdown('<div class="section-header">📋 Domain Explorer</div>', unsafe_allow_html=True)
 
-display_cols = ["domain", "score", "tag", "estimated_price", "tld", "expiry_window", "days_until_expiry",
+display_cols = ["domain", "score", "tag", "estimated_price", "tld", "country", "expiry_window", "days_until_expiry",
                 "keyword_score", "trend_score", "brandability_score", "length_score"]
 available_cols = [c for c in display_cols if c in filtered.columns]
 
@@ -416,6 +427,7 @@ if len(filtered) > 0:
         "tag": "Tag",
         "estimated_price": "Est. Price ($)",
         "tld": "TLD",
+        "country": "Country",
         "expiry_window": "Expiry Window",
         "days_until_expiry": "Days Left",
         "keyword_score": "Keyword",

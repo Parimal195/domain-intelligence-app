@@ -101,6 +101,22 @@ class RDAPFetcher:
                     return handle
         return "Unknown"
 
+    def _extract_country(self, data: dict) -> str:
+        """Extract registrant/registrar country from RDAP response."""
+        entities = data.get("entities", [])
+        for entity in entities:
+            roles = entity.get("roles", [])
+            if "registrar" in roles or "registrant" in roles:
+                vcard = entity.get("vcardArray", [])
+                if len(vcard) > 1:
+                    for item in vcard[1]:
+                        if item[0] == "adr":
+                            # adr is typically a list. Country is usually at index 6 or the last element in the value array.
+                            if len(item) > 3 and isinstance(item[3], list) and len(item[3]) >= 7:
+                                country = item[3][6]
+                                if country: return country
+        return "Unknown"
+
     @retry_with_backoff(
         max_retries=RDAP_MAX_RETRIES,
         base_delay=2.0,
@@ -149,6 +165,7 @@ class RDAPFetcher:
                 return None
 
             registrar = self._extract_registrar(data)
+            country = self._extract_country(data)
 
             return {
                 "domain": domain,
@@ -156,6 +173,7 @@ class RDAPFetcher:
                 "tld": extract_tld(domain),
                 "sld": extract_sld(domain),
                 "registrar": registrar,
+                "country": country,
                 "source": "rdap",
                 "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             }
